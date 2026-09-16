@@ -27,10 +27,12 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
-const DEFAULT_CONFIG_PATH = path.join(homedir(), ".pi", "agent", "kubectl-contexts.json");
+function defaultConfigPath(): string {
+	return path.join(homedir(), ".pi", "agent", "kubectl-contexts.json");
+}
 
 function configPath(): string {
-	return process.env.PI_KUBECTL_CONTEXTS_FILE || DEFAULT_CONFIG_PATH;
+	return process.env.PI_KUBECTL_CONTEXTS_FILE || defaultConfigPath();
 }
 
 /**

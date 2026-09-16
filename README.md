@@ -34,3 +34,17 @@ The location can be overridden with the `PI_KUBECTL_CONTEXTS_FILE` environment v
 ## Usage
 
 Any bash command containing a `kubectl` invocation is blocked unless it passes `--context <value>` (or `--context=<value>`) with an allowed context. `kubectl config` and `kubectl version` are always allowed.
+
+## Development
+
+Unit tests run with zero dependencies via Node's built-in test runner (Node ≥ 22.19 executes TypeScript natively):
+
+```bash
+npm test
+```
+
+An end-to-end test drives the installed package through real headless pi sessions. It requires a working default model and a `kubectl` binary on PATH, and uses a fake context so no real cluster is ever contacted:
+
+```bash
+npm run test:e2e
+```
