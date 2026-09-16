@@ -1,0 +1,21 @@
+{
+  "name": "pi-guard-kubectl-context",
+  "version": "1.0.0",
+  "description": "Pi extension that blocks kubectl commands unless --context targets an allowed cluster",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "pi-package"
+  ],
+  "files": [
+    "index.ts"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}
