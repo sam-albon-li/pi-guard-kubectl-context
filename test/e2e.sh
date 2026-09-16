@@ -63,7 +63,7 @@ for f in "$HOME/.pi/agent/extensions/"*context-guard.ts; do
 done
 
 # Test config with a marker context that exists in no real kubeconfig
-printf '["fake-e2e-ctx"]\n' > "$CONFIG"
+printf '{"allowedContexts": ["fake-e2e-ctx"]}\n' > "$CONFIG"
 MISSING="$WORK/does-not-exist.json"
 
 run_scenario() {

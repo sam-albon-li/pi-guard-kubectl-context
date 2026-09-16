@@ -7,11 +7,12 @@
  * Allowed contexts are read from a local config file so that real cluster
  * names never need to be committed to this repository:
  *
- *   ~/.pi/agent/kubectl-contexts.json   (default)
+ *   ~/.pi/agent/pi-guard-kubectl-context.config.json   (default)
  *
- * Format: a JSON array of context name strings, e.g.
+ * Format: a JSON object with an "allowedContexts" array of context name
+ * strings, e.g.
  *
- *   ["my-staging", "my-production"]
+ *   { "allowedContexts": ["my-staging", "my-production"] }
  *
  * The file location can be overridden with the PI_KUBECTL_CONTEXTS_FILE
  * environment variable.
@@ -27,8 +28,12 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
+interface IConfig {
+  allowedContexts: Array<string>
+}
+
 function defaultConfigPath(): string {
-	return path.join(homedir(), ".pi", "agent", "kubectl-contexts.json");
+	return path.join(homedir(), ".pi", "agent", "pi-guard-kubectl-context.config.json");
 }
 
 function configPath(): string {
@@ -40,14 +45,30 @@ function configPath(): string {
  * Returns null when the file is missing or invalid (fail closed).
  */
 function loadAllowedContexts(): string[] | null {
+	let raw: string;
 	try {
-		const raw = readFileSync(configPath(), "utf8");
-		const parsed: unknown = JSON.parse(raw);
-		if (!Array.isArray(parsed)) return null;
-		return parsed.filter((c): c is string => typeof c === "string" && c.length > 0);
+		raw = readFileSync(configPath(), "utf8");
 	} catch {
 		return null;
 	}
+
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return null;
+	}
+
+	if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+		return null;
+	}
+
+	const allowedContexts = (parsed as IConfig).allowedContexts;
+	if (!Array.isArray(allowedContexts)) {
+		return null;
+	}
+
+	return allowedContexts.filter((c): c is string => typeof c === "string" && c.length > 0);
 }
 
 /**
@@ -79,7 +100,7 @@ export default function (pi: ExtensionAPI) {
 		if (!allowed) {
 			return {
 				block: true,
-				reason: `kubectl command blocked: no allowed-contexts config found at ${configPath()}.\n\nCreate it with a JSON array of context names, e.g. ["my-staging"], or set PI_KUBECTL_CONTEXTS_FILE to point at your config file.`,
+				reason: `kubectl command blocked: no allowed-contexts config found at ${configPath()}.\n\nCreate it as a JSON object with an "allowedContexts" array, e.g. {"allowedContexts": ["my-staging"]}, or set PI_KUBECTL_CONTEXTS_FILE to point at your config file.`,
 			};
 		}
 

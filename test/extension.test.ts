@@ -75,14 +75,19 @@ function writeConfig(contents: string): string {
 
 /** Point PI_KUBECTL_CONTEXTS_FILE at a config with the given contexts. */
 function useContexts(contexts: string[]): void {
-	process.env.PI_KUBECTL_CONTEXTS_FILE = writeConfig(JSON.stringify(contexts));
+	process.env.PI_KUBECTL_CONTEXTS_FILE = writeConfig(
+		JSON.stringify({ allowedContexts: contexts }),
+	);
 }
 
-/** Write the default-path config (~/.pi/agent/kubectl-contexts.json) in tmp HOME. */
+/** Write the default-path config (~/.pi/agent/pi-guard-kubectl-context.config.json) in tmp HOME. */
 function useDefaultContexts(contexts: string[]): void {
 	const dir = path.join(tmpHome, ".pi", "agent");
 	mkdirSync(dir, { recursive: true });
-	writeFileSync(path.join(dir, "kubectl-contexts.json"), JSON.stringify(contexts));
+	writeFileSync(
+		path.join(dir, "pi-guard-kubectl-context.config.json"),
+		JSON.stringify({ allowedContexts: contexts }),
+	);
 }
 
 function isBlocked(result: unknown): result is { block: true; reason: string } {
@@ -122,13 +127,13 @@ test("always allows kubectl version without a context", async () => {
 
 test("blocks all kubectl commands when the config file is missing (default path)", async () => {
 	const { fire } = loadExtension();
-	// tmpHome has no .pi/agent/kubectl-contexts.json
+	// tmpHome has no .pi/agent/pi-guard-kubectl-context.config.json
 	const result = await fire("kubectl get pods");
 	assert.ok(isBlocked(result), "expected block, got: " + JSON.stringify(result));
 	assert.match(result.reason, /no allowed-contexts config found/);
 	assert.match(
 		result.reason,
-		new RegExp(path.join(".pi", "agent", "kubectl-contexts.json").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+		new RegExp(path.join(".pi", "agent", "pi-guard-kubectl-context.config.json").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
 	);
 });
 
@@ -140,7 +145,7 @@ test("blocks when the config file is invalid JSON", async () => {
 	assert.match(result.reason, /no allowed-contexts config found/);
 });
 
-test("blocks when the config file is not a JSON array", async () => {
+test("blocks when the config object has no allowedContexts key", async () => {
 	const { fire } = loadExtension();
 	process.env.PI_KUBECTL_CONTEXTS_FILE = writeConfig('{"allowed": ["ctx-a"]}');
 	const result = await fire("kubectl get pods");
@@ -148,7 +153,23 @@ test("blocks when the config file is not a JSON array", async () => {
 	assert.match(result.reason, /no allowed-contexts config found/);
 });
 
-test("blocks everything when the config is an empty array", async () => {
+test("blocks when the config is a bare JSON array (old format)", async () => {
+	const { fire } = loadExtension();
+	process.env.PI_KUBECTL_CONTEXTS_FILE = writeConfig('["ctx-a"]');
+	const result = await fire("kubectl get pods --context ctx-a");
+	assert.ok(isBlocked(result));
+	assert.match(result.reason, /no allowed-contexts config found/);
+});
+
+test("blocks when allowedContexts is not an array", async () => {
+	const { fire } = loadExtension();
+	process.env.PI_KUBECTL_CONTEXTS_FILE = writeConfig('{"allowedContexts": "ctx-a"}');
+	const result = await fire("kubectl get pods");
+	assert.ok(isBlocked(result));
+	assert.match(result.reason, /no allowed-contexts config found/);
+});
+
+test("blocks everything when allowedContexts is empty", async () => {
 	const { fire } = loadExtension();
 	useContexts([]);
 	const result = await fire("kubectl get pods --context ctx-a");
@@ -201,7 +222,21 @@ test("context flag matching is case-insensitive", async () => {
 	assert.equal(await fire("kubectl get pods --CONTEXT ctx-a"), undefined);
 });
 
+test("ignores extra object keys and filters non-string entries", async () => {
+	const { fire } = loadExtension();
+	process.env.PI_KUBECTL_CONTEXTS_FILE = writeConfig(
+		JSON.stringify({ allowedContexts: ["ctx-a", 42, "", null], note: "extra" }),
+	);
+	assert.equal(await fire("kubectl get pods --context ctx-a"), undefined);
+});
+
 // ── Config resolution ───────────────────────────────────────────────────────
+
+test("resolves the default config path lazily so HOME changes after import are respected", async () => {
+	const { fire } = loadExtension();
+	useDefaultContexts(["ctx-a"]);
+	assert.equal(await fire("kubectl get pods --context ctx-a"), undefined);
+});
 
 test("PI_KUBECTL_CONTEXTS_FILE overrides the default path", async () => {
 	const { fire } = loadExtension();

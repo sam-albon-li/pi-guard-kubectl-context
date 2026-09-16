@@ -7,7 +7,7 @@ Pi agent extension that blocks `kubectl` commands unless `--context` targets an 
 ## Install
 
 ```bash
-pi install git:github.com/sam-albon-li/pi-guard-kubectl-context@v1.0.0
+pi install git:github.com/sam-albon-li/pi-guard-kubectl-context@v1.1.0
 ```
 
 Or without a pinned ref (tracks the default branch until you pin):
@@ -20,13 +20,15 @@ Remove with `pi remove git:github.com/sam-albon-li/pi-guard-kubectl-context`.
 
 ## Configure allowed contexts
 
-The allowlist lives in a local JSON file so real cluster names stay out of this repository. Create `~/.pi/agent/kubectl-contexts.json` (see `kubectl-contexts.example.json` for the format):
+The allowlist lives in a local JSON file so real cluster names stay out of this repository. Create `~/.pi/agent/pi-guard-kubectl-context.config.json` (see `pi-guard-kubectl-context.example.json` for the format):
 
 ```json
-[
-  "my-staging",
-  "my-production"
-]
+{
+  "allowedContexts": [
+    "example-staging",
+    "example-production"
+  ]
+}
 ```
 
 The location can be overridden with the `PI_KUBECTL_CONTEXTS_FILE` environment variable. The file is re-read on every kubectl command, so edits apply without restarting pi.

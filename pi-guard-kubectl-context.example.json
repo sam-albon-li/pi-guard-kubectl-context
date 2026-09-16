@@ -1,0 +1,6 @@
+{
+  "allowedContexts": [
+    "example-staging",
+    "example-production"
+  ]
+}
