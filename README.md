@@ -1,3 +1,5 @@
+[![ci](https://github.com/sam-albon-li/pi-guard-kubectl-context/actions/workflows/ci.yml/badge.svg)](https://github.com/sam-albon-li/pi-guard-kubectl-context/actions/workflows/ci.yml)
+
 # pi-guard-kubectl-context
 
 Pi agent extension that blocks `kubectl` commands unless `--context` targets an allowed cluster context.
