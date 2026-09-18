@@ -25,3 +25,4 @@ Every tag must have a GitHub release, created immediately after the tag is pushe
 - derive the notes from the commits between the previous tag and the new tag (`git log <prev-tag>..<new-tag> --oneline`), rewritten as user-facing changes
 - call out breaking changes explicitly in a "Breaking changes" section at the top of the notes — any commit with a `!` suffix or `BREAKING CHANGE:` footer in the range is breaking
 - for the first release, state that it is the initial release and list all changes since the initial commit
+- release notes must use a structured format with `## Changes` and `## Breaking changes` sections; for configuration changes, explicitly include the new search order and a brief "how to use" instruction
