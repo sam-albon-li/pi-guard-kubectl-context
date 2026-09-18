@@ -46,6 +46,8 @@ function loadExtension() {
 
 // ── Isolated HOME + config file helpers ─────────────────────────────────────
 
+const savedCwd = process.cwd();
+
 const savedEnv: { home?: string; cfg?: string } = {
 	home: process.env.HOME,
 	cfg: process.env.PI_KUBECTL_CONTEXTS_FILE,
@@ -56,10 +58,12 @@ let tmpHome: string;
 beforeEach(() => {
 	tmpHome = mkdtempSync(path.join(tmpdir(), "kcg-test-"));
 	process.env.HOME = tmpHome;
+	process.chdir(tmpHome);
 	delete process.env.PI_KUBECTL_CONTEXTS_FILE;
 });
 
 afterEach(() => {
+	process.chdir(savedCwd);
 	rmSync(tmpHome, { recursive: true, force: true });
 	process.env.HOME = savedEnv.home;
 	if (savedEnv.cfg === undefined) delete process.env.PI_KUBECTL_CONTEXTS_FILE;
@@ -246,4 +250,20 @@ test("PI_KUBECTL_CONTEXTS_FILE overrides the default path", async () => {
 	assert.equal(await fire("kubectl get pods --context ctx-b"), undefined);
 	const result = await fire("kubectl get pods --context ctx-a");
 	assert.ok(isBlocked(result), "override file should win over the default path");
+});
+
+test("resolves $CWD/.pi/pi-guard-kubectl-context.config.json if it exists", async () => {
+	const { fire } = loadExtension();
+	const cwdConfig = path.join(process.cwd(), ".pi", "pi-guard-kubectl-context.config.json");
+	mkdirSync(path.dirname(cwdConfig), { recursive: true });
+	writeFileSync(cwdConfig, JSON.stringify({ allowedContexts: ["ctx-cwd"] }));
+	
+	assert.equal(await fire("kubectl get pods --context ctx-cwd"), undefined);
+});
+
+test("falls back to default home config if CWD configs are missing", async () => {
+	const { fire } = loadExtension();
+	useDefaultContexts(["ctx-home"]);
+	// No CWD configs created
+	assert.equal(await fire("kubectl get pods --context ctx-home"), undefined);
 });

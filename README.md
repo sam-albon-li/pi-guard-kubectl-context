@@ -20,7 +20,13 @@ Remove with `pi remove git:github.com/sam-albon-li/pi-guard-kubectl-context`.
 
 ## Configure allowed contexts
 
-The allowlist lives in a local JSON file so real cluster names stay out of this repository. Create `~/.pi/agent/pi-guard-kubectl-context.config.json` (see `pi-guard-kubectl-context.example.json` for the format):
+The allowlist lives in a local JSON file so real cluster names stay out of this repository. The search order is:
+
+1. `PI_KUBECTL_CONTEXTS_FILE` environment variable
+2. `$CWD/.pi/pi-guard-kubectl-context.config.json`
+3. `~/.pi/agent/pi-guard-kubectl-context.config.json` (default)
+
+Create the configuration file (see `pi-guard-kubectl-context.example.json` for the format):
 
 ```json
 {
@@ -31,7 +37,7 @@ The allowlist lives in a local JSON file so real cluster names stay out of this 
 }
 ```
 
-The location can be overridden with the `PI_KUBECTL_CONTEXTS_FILE` environment variable. The file is re-read on every kubectl command, so edits apply without restarting pi.
+The file is re-read on every kubectl command, so edits apply without restarting pi.
 
 **Fail closed:** if the config file is missing or invalid, all kubectl commands are blocked until it is created.
 

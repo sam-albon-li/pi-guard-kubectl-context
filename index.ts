@@ -5,9 +5,11 @@
  * targets an allowed cluster context.
  *
  * Allowed contexts are read from a local config file so that real cluster
- * names never need to be committed to this repository:
+ * names never need to be committed to this repository. The search order is:
  *
- *   ~/.pi/agent/pi-guard-kubectl-context.config.json   (default)
+ * 1. PI_KUBECTL_CONTEXTS_FILE environment variable
+ * 2. $CWD/.pi/pi-guard-kubectl-context.config.json
+ * 3. ~/.pi/agent/pi-guard-kubectl-context.config.json (default)
  *
  * Format: a JSON object with an "allowedContexts" array of context name
  * strings, e.g.
@@ -24,7 +26,7 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -32,12 +34,25 @@ interface IConfig {
   allowedContexts: Array<string>
 }
 
+function cwdConfigPath(): string {
+  return path.join(process.cwd(), ".pi", "pi-guard-kubectl-context.config.json");
+}
+
 function defaultConfigPath(): string {
 	return path.join(homedir(), ".pi", "agent", "pi-guard-kubectl-context.config.json");
 }
 
 function configPath(): string {
-	return process.env.PI_KUBECTL_CONTEXTS_FILE || defaultConfigPath();
+	if (process.env.PI_KUBECTL_CONTEXTS_FILE) {
+		return process.env.PI_KUBECTL_CONTEXTS_FILE;
+	}
+
+  const cwdConfig = cwdConfigPath();
+	if (existsSync(cwdConfig)) {
+		return cwdConfig;
+	}
+
+	return defaultConfigPath();
 }
 
 /**
